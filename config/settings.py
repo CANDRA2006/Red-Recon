@@ -1,0 +1,9 @@
+DEFAULT_TIMEOUT = 1
+THREADS = 50
+
+COMMON_PORTS = [
+    21, 22, 23, 25, 53,
+    80, 443, 3306, 8080
+]
+
+USER_AGENT = "Red-Recon/0.1"

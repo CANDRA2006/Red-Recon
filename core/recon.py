@@ -4,9 +4,9 @@ import aiohttp
 
 from core.scanner import probe_http
 from core.cdn import detect_cdn
+from core.headers import analyze_security_headers
 
 SUBDOMAINS = ["www", "mail", "test", "dev", "api", "beta", "m", "admin"]
-
 resolver = dns.resolver.Resolver()
 
 async def resolve_domain(domain):
@@ -24,8 +24,11 @@ async def scan_host(session, host):
     http_info = await probe_http(session, host)
 
     cdn = "Unknown"
+    headers_result = {}
+
     if http_info and "headers" in http_info:
         cdn = detect_cdn(http_info["headers"])
+        headers_result = analyze_security_headers(http_info["headers"])
 
     return {
         "host": host,
@@ -33,25 +36,17 @@ async def scan_host(session, host):
         "http": {
             "url": http_info["url"] if http_info else None,
             "status": http_info["status"] if http_info else None,
-            "cdn": cdn
+            "cdn": cdn,
+            "security_headers": headers_result
         }
     }
 
 async def recon_target(domain):
-    results = []
-
     async with aiohttp.ClientSession() as session:
-        tasks = []
+        tasks = [scan_host(session, domain)]
 
         for sub in SUBDOMAINS:
             tasks.append(scan_host(session, f"{sub}.{domain}"))
 
-        tasks.append(scan_host(session, domain))
-
-        scanned = await asyncio.gather(*tasks)
-
-        for r in scanned:
-            if r:
-                results.append(r)
-
-    return results
+        results = await asyncio.gather(*tasks)
+        return [r for r in results if r]

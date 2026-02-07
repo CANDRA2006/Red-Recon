@@ -2,9 +2,10 @@ import sys
 import asyncio
 from datetime import datetime
 
-from core.recon import recon_target
-from utils.writer import save_json, save_txt
 from utils.banner import show_banner
+from utils.writer import save_json, save_txt
+from core.resolver import resolve_domain
+from core.security_headers import scan_headers
 
 def main():
     if len(sys.argv) < 2:
@@ -13,23 +14,35 @@ def main():
 
     domain = sys.argv[1]
     show_banner()
-
     print(f"[INFO] Recon started for {domain}")
 
-    results = asyncio.run(recon_target(domain))
-
-    lines = []
-    for r in results:
-        cdn = r["http"]["cdn"]
-        line = f"[+] {r['host']} -> {', '.join(r['ips'])} | CDN: {cdn}"
-        print(line)
-        lines.append(line)
-
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_json(results, f"output/json/report_{ts}.json")
-    save_txt(lines, f"output/txt/report_{ts}.txt")
+    results = []
 
-    print("[DONE] Recon finished")
+    targets = [domain, f"www.{domain}"]
+
+    for t in targets:
+        data = resolve_domain(t)
+        if data["ips"]:
+            print(f"[+] {t} -> {', '.join(data['ips'])} | CDN: {data['cdn']}")
+        results.append(data)
+
+    print("[INFO] Scanning security headers...")
+
+    header_results = asyncio.run(scan_headers(domain))
+
+    save_json(
+        {
+            "recon": results,
+            "security_headers": header_results
+        },
+        f"output/json/report_{ts}.json"
+    )
+
+    save_txt(results, f"output/txt/report_{ts}.txt")
+
+    print("[INFO] Security header scan completed")
+    print("[INFO] Recon finished")
 
 if __name__ == "__main__":
     main()

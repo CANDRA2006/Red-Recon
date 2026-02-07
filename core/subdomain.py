@@ -2,20 +2,13 @@ import requests
 
 def enum_subdomains(domain):
     url = f"https://crt.sh/?q=%25.{domain}&output=json"
-    subdomains = set()
-
+    subs = set()
     try:
         r = requests.get(url, timeout=10)
-        if r.status_code != 200:
-            return []
-
-        for entry in r.json():
-            name = entry.get("name_value")
-            if name:
-                for sub in name.split("\n"):
-                    if "*" not in sub:
-                        subdomains.add(sub.strip())
-    except Exception:
+        for e in r.json():
+            for s in e["name_value"].split():
+                if "*" not in s:
+                    subs.add(s.strip())
+    except:
         pass
-
-    return list(subdomains)
+    return list(subs)

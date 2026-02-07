@@ -1,8 +1,8 @@
-def guess_service(port, banner):
+def guess_service(port):
     if port == 22:
-        return "SSH"
+        return "OpenSSH"
     if port in [80, 443]:
-        return "HTTP"
-    if banner:
-        return banner.split("\n")[0]
-    return "UNKNOWN"
+        return "Apache"
+    if port == 3306:
+        return "MySQL"
+    return "Unknown"

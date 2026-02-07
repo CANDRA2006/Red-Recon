@@ -1,33 +1,17 @@
-import socket
-from concurrent.futures import ThreadPoolExecutor
+import aiohttp
 
-def scan_port(host, port, timeout):
-    try:
-        s = socket.socket()
-        s.settimeout(timeout)
-        s.connect((host, port))
-        banner = None
+async def probe_http(session, host):
+    urls = [f"https://{host}", f"http://{host}"]
+
+    for url in urls:
         try:
-            banner = s.recv(1024).decode(errors="ignore").strip()
+            async with session.get(url, timeout=5) as resp:
+                return {
+                    "url": url,
+                    "status": resp.status,
+                    "headers": dict(resp.headers)
+                }
         except:
-            pass
-        s.close()
-        return port, banner
-    except:
-        return None
+            continue
 
-def scan_ports(host, ports, timeout, threads):
-    results = []
-
-    with ThreadPoolExecutor(max_workers=threads) as executor:
-        futures = [
-            executor.submit(scan_port, host, p, timeout)
-            for p in ports
-        ]
-
-        for f in futures:
-            res = f.result()
-            if res:
-                results.append(res)
-
-    return results
+    return None
